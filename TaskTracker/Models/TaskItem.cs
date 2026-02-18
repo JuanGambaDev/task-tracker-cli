@@ -1,6 +1,6 @@
-namespace TrackerTask.Models;
+namespace TaskTracker.Models;
 
-public sealed class TaskItem
+public class TaskItem
 {
     public int Id { get; init; }
     public string Description { get; private set; }

@@ -1,8 +1,8 @@
-﻿using TrackerTask.Models;
+﻿using TaskTracker.Models;
 
-namespace TrackerTask;
+namespace TaskTracker;
 
-public class Program
+public class Program 
 {
     public static void Main(string[] args)
     {

@@ -1,5 +1,5 @@
 
-namespace TrackerTask.Models;
+namespace TaskTracker.Models;
 
 public enum TaskStatus
 {

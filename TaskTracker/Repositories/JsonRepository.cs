@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace TaskTracker.Repositories;
 
-public class JsonRepository<T>
+public class JsonRepository<T> : IRepository<T>
 {
     private readonly string _filePath;
 

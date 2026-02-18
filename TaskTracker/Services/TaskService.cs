@@ -15,36 +15,30 @@ public class TaskService
     public async Task<TaskItem> AddTaskAsync(string description)
     {
         if (string.IsNullOrWhiteSpace(description))
-            throw new ArgumentException("Task description cannot be empty.", nameof(description));
+            throw new ArgumentException("Task description cannot be empty.");
 
-        try
+        var tasks = await _repository.LoadAsync();
+
+        var task = new TaskItem
         {
-            var tasks = await _repository.LoadAsync();
+            Id = tasks.Any() ? tasks.Max(t => t.Id) + 1 : 1,
+            Description = description.Trim(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
-            var task = new TaskItem
-            {
-                Id = tasks.Any() ? tasks.Max(t => t.Id) + 1 : 1,
-                Description = description.Trim(),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+        tasks.Add(task);
+        await _repository.SaveAsync(tasks);
 
-            tasks.Add(task);
-            await _repository.SaveAsync(tasks);
+        return task;
+    }
 
-            return task;
-        }
-        catch (IOException ex)
-        {
-            throw new ApplicationException(
-                "An error occurred while accessing the task storage.",
-                ex);
-        }
-        catch (Exception ex)
-        {
-            throw new ApplicationException(
-                "An unexpected error occurred while creating the task.",
-                ex);
-        }
+    public async Task<List<TaskItem>> GetAllTasksAsync(TaskItemStatus? status = null)
+    {
+        var tasks = await _repository.LoadAsync();
+
+        return status is null
+            ? tasks
+            : tasks.Where(t => t.Status == status).ToList();
     }
 }

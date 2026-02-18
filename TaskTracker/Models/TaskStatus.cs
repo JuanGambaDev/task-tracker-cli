@@ -1,7 +1,7 @@
 
 namespace TaskTracker.Models;
 
-public enum TaskStatus
+public enum TaskItemStatus
 {
     ToDo,
     InProgress,

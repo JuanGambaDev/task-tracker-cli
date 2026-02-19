@@ -52,7 +52,7 @@ public class TaskServiceTests : TestBase
     {
         var service = CreateService();
 
-        var task1 = await service.AddTaskAsync("Todo task");
+        var task1 = await service.AddTaskAsync("ToDo task");
         var task2 = await service.AddTaskAsync("Done task");
 
         // Manually update status (since your service doesn’t yet)

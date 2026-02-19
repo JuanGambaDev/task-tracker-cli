@@ -41,4 +41,27 @@ public class TaskService
             ? tasks
             : tasks.Where(t => t.Status == status).ToList();
     }
+
+    public async Task<TaskItem> UpdateTaskDescriptionAsync(int id, string description)
+    {
+        if (id <= 0)
+            throw new ArgumentException("Task id must be greater than zero.");
+
+        if (string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("Task description cannot be empty.");
+
+        var tasks = await _repository.LoadAsync();
+
+        var task = tasks.FirstOrDefault(t => t.Id == id);
+
+        if (task is null)
+            throw new InvalidOperationException($"Task with id {id} not found.");
+
+        task.Description = description.Trim();
+        task.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.SaveAsync(tasks);
+
+        return task;
+    }
 }

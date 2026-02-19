@@ -33,7 +33,7 @@ public class TaskService
         return task;
     }
 
-    public async Task<List<TaskItem>> GetAllTasksAsync(TaskItemStatus? status = null)
+    public async Task<List<TaskItem>> GetTasksAsync(TaskItemStatus? status = null)
     {
         var tasks = await _repository.LoadAsync();
 

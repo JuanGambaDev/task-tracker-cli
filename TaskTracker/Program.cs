@@ -30,7 +30,7 @@ try
             if (args.Length > 1)
                 status = ParseStatus(args[1]);
 
-            var tasks = await service.GetAllTasksAsync(status);
+            var tasks = await service.GetTasksAsync(status);
 
             if (!tasks.Any())
             {

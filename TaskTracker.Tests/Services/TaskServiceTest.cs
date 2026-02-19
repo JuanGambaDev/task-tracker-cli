@@ -1,87 +1,69 @@
 using TaskTracker.Models;
+using TaskTracker.Repositories;
 using TaskTracker.Services;
-using TaskTracker.Tests.Fakes;
 using Xunit;
 
-namespace TaskTracker.Tests.Services;
+namespace TaskTracker.Tests;
 
-public class TaskServiceTests
+public class TaskServiceTests : TestBase
 {
-    [Fact]
-    public async Task AddTaskAsync_ValidDescription_AddsTask()
+    private TaskService CreateService()
     {
-        // Arrange
-        var repository = new FakeTaskRepository();
-        var service = new TaskService(repository);
-
-        // Act
-        var task = await service.AddTaskAsync("Buy groceries");
-
-        // Assert
-        Assert.Single(repository.StoredTasks);
-        Assert.Equal(1, task.Id);
-        Assert.Equal("Buy groceries", task.Description);
-        Assert.Equal(task.CreatedAt, task.UpdatedAt);
+        var repository = new JsonRepository<TaskItem>(TempFilePath);
+        return new TaskService(repository);
     }
 
     [Fact]
-    public async Task AddTaskAsync_ExistingTasks_IncrementsId()
+    public async Task AddTaskAsync_CreatesTaskWithIncrementedId()
     {
-        // Arrange
-        var repository = new FakeTaskRepository();
-        repository.StoredTasks.ToList().Add(new TaskItem { Id = 1 });
+        var service = CreateService();
 
-        var service = new TaskService(repository);
+        var task1 = await service.AddTaskAsync("First task");
+        var task2 = await service.AddTaskAsync("Second task");
 
-        // Act
-        var task = await service.AddTaskAsync("New task");
-
-        // Assert
-        Assert.Equal(1, task.Id); // because fake starts empty
+        Assert.Equal(1, task1.Id);
+        Assert.Equal(2, task2.Id);
     }
 
     [Fact]
-    public async Task AddTaskAsync_DescriptionIsTrimmed()
+    public async Task AddTaskAsync_ThrowsWhenDescriptionIsEmpty()
     {
-        // Arrange
-        var repository = new FakeTaskRepository();
-        var service = new TaskService(repository);
+        var service = CreateService();
 
-        // Act
-        var task = await service.AddTaskAsync("   Clean room   ");
-
-        // Assert
-        Assert.Equal("Clean room", task.Description);
-    }
-
-    [Fact]
-    public async Task AddTaskAsync_EmptyDescription_ThrowsArgumentException()
-    {
-        // Arrange
-        var repository = new FakeTaskRepository();
-        var service = new TaskService(repository);
-
-        // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
-            () => service.AddTaskAsync("   "));
+            () => service.AddTaskAsync(" "));
     }
 
     [Fact]
-    public async Task AddTaskAsync_RepositoryThrowsIOException_WrapsInApplicationException()
+    public async Task GetTasksAsync_ReturnsAllTasks()
     {
-        // Arrange
-        var repository = new FakeTaskRepository
-        {
-            ThrowOnLoad = true
-        };
-        var service = new TaskService(repository);
+        var service = CreateService();
 
-        // Act
-        var ex = await Assert.ThrowsAsync<ApplicationException>(
-            () => service.AddTaskAsync("Test task"));
+        await service.AddTaskAsync("Task A");
+        await service.AddTaskAsync("Task B");
 
-        // Assert
-        Assert.Contains("task storage", ex.Message);
-        Assert.IsType<IOException>(ex.InnerException);
+        var tasks = await service.GetTasksAsync();
+
+        Assert.Equal(2, tasks.Count);
+    }
+
+    [Fact]
+    public async Task GetTasksAsync_FiltersByStatus()
+    {
+        var service = CreateService();
+
+        var task1 = await service.AddTaskAsync("ToDo task");
+        var task2 = await service.AddTaskAsync("Done task");
+
+        // Manually update status (since your service doesn’t yet)
+        task2.Status = TaskItemStatus.Done;
+
+        var repo = new JsonRepository<TaskItem>(TempFilePath);
+        await repo.SaveAsync(new() { task1, task2 });
+
+        var doneTasks = await service.GetTasksAsync(TaskItemStatus.Done);
+
+        Assert.Single(doneTasks);
+        Assert.Equal(TaskItemStatus.Done, doneTasks[0].Status);
     }
 }

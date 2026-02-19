@@ -42,7 +42,7 @@ public class TaskService
             : tasks.Where(t => t.Status == status).ToList();
     }
 
-    public async Task<TaskItem> UpdateTaskAsync(int id, string description)
+    public async Task<TaskItem> UpdateTaskDescriptionAsync(int id, string description)
     {
         if (id <= 0)
             throw new ArgumentException("Task id must be greater than zero.");

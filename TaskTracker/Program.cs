@@ -57,7 +57,7 @@ try
             if (!int.TryParse(args[1], out int idTask))
                 throw new ArgumentException("Task id must be a number.");
 
-            var updatedTask = await service.UpdateTaskAsync(idTask, args[2]);
+            var updatedTask = await service.UpdateTaskDescriptionAsync(idTask, args[2]);
 
             Console.WriteLine($"Task updated successfully (ID: {updatedTask.Id})");
             break;

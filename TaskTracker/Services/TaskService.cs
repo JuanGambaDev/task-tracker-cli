@@ -1,5 +1,12 @@
 using TaskTracker.Repositories;
 using TaskTracker.Models;
+using System.Security.Cryptography.X509Certificates;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Data;
+using System.Diagnostics.Tracing;
+using System.Threading.Tasks.Sources;
+using System.ComponentModel.Design;
 
 namespace TaskTracker.Services;
 
@@ -58,6 +65,34 @@ public class TaskService
             throw new InvalidOperationException($"Task with id {id} not found.");
 
         task.Description = description.Trim();
+        task.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.SaveAsync(tasks);
+
+        return task;
+    }
+
+    public async Task<TaskItem> UpdateStatusTaskAsync(string commandCli, int id)
+    {
+        if (id <= 0)
+            throw new ArgumentException("Task id must be greater than zero.");
+
+        if (string.IsNullOrWhiteSpace(commandCli))
+            throw new ArgumentException("Command CLI cannot be empty.");
+
+        var tasks = await _repository.LoadAsync();
+
+        var task = tasks.FirstOrDefault(t => t.Id == id);
+
+        if (task is null)
+            throw new InvalidOperationException($"Task with id {id} not found.");
+
+        if (commandCli == "mark-in-progress")
+            task.Status = TaskItemStatus.InProgress;
+
+        if (commandCli == "mark-in-done")
+            task.Status = TaskItemStatus.Done;
+
         task.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveAsync(tasks);

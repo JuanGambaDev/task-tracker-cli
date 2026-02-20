@@ -63,13 +63,42 @@ try
             break;
         }
 
+        case "mark-in-progress":
+        {
+            if (!int.TryParse(args[1], out int idTask))
+                throw new ArgumentException("Task id must be a number.");
+
+            var updatedTask = await service.UpdateStatusTaskAsync(args[0], idTask);
+            Console.WriteLine($"Status task updated successfully (ID: {updatedTask.Id})");
+            break;
+        }
+
+        case "mark-in-done":
+        {
+            if (!int.TryParse(args[1], out int idTask))
+                throw new ArgumentException("Task id must be a number.");
+
+            var updatedTask = await service.UpdateStatusTaskAsync(args[0], idTask);
+            Console.WriteLine($"Status task updated successfully (ID: {updatedTask.Id})");
+            break;
+        }
+
+
         default:
             Console.WriteLine("Unknown command.");
             ShowHelp();
             break;
     }
 }
-catch (Exception ex)
+catch (IndexOutOfRangeException)
+{
+    Console.WriteLine("Error: Missing arguments.");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Invalid argument: {ex.Message}");
+}
+catch (InvalidOperationException ex)
 {
     Console.WriteLine($"Error: {ex.Message}");
 }

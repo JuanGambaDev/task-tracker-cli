@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using TaskTracker.Models;
 using TaskTracker.Repositories;
 using TaskTracker.Services;
@@ -56,7 +55,6 @@ public class TaskServiceTests : TestBase
         var task1 = await service.AddTaskAsync("ToDo task");
         var task2 = await service.AddTaskAsync("Done task");
 
-        // Manually update status (since your service doesn’t yet)
         task2.Status = TaskItemStatus.Done;
 
         var repo = new JsonRepository<TaskItem>(TempFilePath);
@@ -71,17 +69,14 @@ public class TaskServiceTests : TestBase
     [Fact]
     public async Task UpdateTaskAsync_UpdatesTaskDescription()
     {
-        // Arrange
         var service = CreateService();
 
         var createdTask = await service.AddTaskAsync("Initial project");
 
-        // Act
         var updatedTask = await service.UpdateTaskDescriptionAsync(
             createdTask.Id,
             "update project");
 
-        // Assert
         Assert.Equal(createdTask.Id, updatedTask.Id);
         Assert.Equal("update project", updatedTask.Description);
         Assert.True(updatedTask.UpdatedAt > createdTask.UpdatedAt);
@@ -90,10 +85,8 @@ public class TaskServiceTests : TestBase
     [Fact]
     public async Task UpdateTaskAsync_Throws_WhenIdIsZero()
     {
-        // Arrange
         var service = CreateService();
 
-        // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => service.UpdateTaskDescriptionAsync(0, "update project"));
 
@@ -103,11 +96,9 @@ public class TaskServiceTests : TestBase
     [Fact]
     public async Task UpdateTaskAsync_Throws_WhenDescriptionIsEmpty()
     {
-        // Arrange
         var service = CreateService();
         var task = await service.AddTaskAsync("Initial project");
 
-        // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => service.UpdateTaskDescriptionAsync(task.Id, "   "));
 
@@ -117,12 +108,70 @@ public class TaskServiceTests : TestBase
     [Fact]
     public async Task UpdateTaskAsync_Throws_WhenTaskDoesNotExist()
     {
-        // Arrange
         var service = CreateService();
 
-        // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.UpdateTaskDescriptionAsync(999, "update project"));
+
+        Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ─── UpdateStatusTaskAsync tests ───────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateStatusTaskAsync_SetsStatusInProgress()
+    {
+        var service = CreateService();
+        var task = await service.AddTaskAsync("Some task");
+
+        var updated = await service.UpdateStatusTaskAsync("mark-in-progress", task.Id);
+
+        Assert.Equal(TaskItemStatus.InProgress, updated.Status);
+        Assert.True(updated.UpdatedAt >= task.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task UpdateStatusTaskAsync_SetsStatusDone()
+    {
+        var service = CreateService();
+        var task = await service.AddTaskAsync("Some task");
+
+        var updated = await service.UpdateStatusTaskAsync("mark-in-done", task.Id);
+
+        Assert.Equal(TaskItemStatus.Done, updated.Status);
+        Assert.True(updated.UpdatedAt >= task.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task UpdateStatusTaskAsync_Throws_WhenIdIsZero()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.UpdateStatusTaskAsync("mark-in-done", 0));
+
+        Assert.Contains("id", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateStatusTaskAsync_Throws_WhenCommandIsEmpty()
+    {
+        var service = CreateService();
+        var task = await service.AddTaskAsync("Some task");
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.UpdateStatusTaskAsync("   ", task.Id));
+
+        Assert.Contains("command", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateStatusTaskAsync_Throws_WhenTaskDoesNotExist()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.UpdateStatusTaskAsync("mark-in-done", 999));
 
         Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

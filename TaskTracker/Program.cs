@@ -82,6 +82,16 @@ try
             Console.WriteLine($"Status task updated successfully (ID: {updatedTask.Id})");
             break;
         }
+        
+        case "delete":
+            {
+                if (!int.TryParse(args[1], out int idTask))
+                throw new ArgumentException("Task id must be a number.");
+
+                var deletedTask = await service.DeleteTaskByIdAsync(idTask);
+                Console.WriteLine($"Task has been deleted successfully (ID: {deletedTask.Id})");
+                break;
+            }
 
 
         default:
@@ -132,5 +142,9 @@ Commands:
   list todo
   list in-progress
   list done
+  update id description
+  mark-in-progress id
+  mark-in-done id
+  delete id
 """);
 }

@@ -99,4 +99,24 @@ public class TaskService
 
         return task;
     }
+
+    public async Task<TaskItem> DeleteTaskByIdAsync(int id)
+    {
+        if (id <= 0)
+            throw new ArgumentException("Task id must be greater than zero.");
+
+        var tasks = await _repository.LoadAsync();
+
+        var task = tasks.FirstOrDefault(t => t.Id == id);
+
+        if (task is null)
+            throw new InvalidOperationException($"Task with id {id} not found.");
+
+        tasks.Remove(task);
+
+        await _repository.SaveAsync(tasks);
+
+        return task;
+        
+    }
 }

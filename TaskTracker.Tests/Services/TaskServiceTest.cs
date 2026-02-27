@@ -175,4 +175,46 @@ public class TaskServiceTests : TestBase
 
         Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task DeleteTaskById_DeletesTaskAndReturnsIt()
+    {
+        var service = CreateService();
+
+        var task1 = await service.AddTaskAsync("test project");
+        var task2 = await service.AddTaskAsync("add new task");
+
+        var deletedTask = await service.DeleteTaskByIdAsync(task2.Id);
+
+        // Assert returned task is correct
+        Assert.Equal(task2.Id, deletedTask.Id);
+        Assert.Equal("add new task", deletedTask.Description);
+
+        // Assert task was actually removed
+        var remainingTasks = await service.GetTasksAsync();
+        Assert.Single(remainingTasks);
+        Assert.Equal(task1.Id, remainingTasks[0].Id);
+    }
+
+        [Fact]
+    public async Task DeleteTaskById_Throws_WhenIdIsZero()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.DeleteTaskByIdAsync(0));
+
+        Assert.Contains("id", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DeleteTaskById_Throws_WhenTaskDoesNotExist()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.DeleteTaskByIdAsync(999));
+
+        Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

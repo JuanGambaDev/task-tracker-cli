@@ -13,30 +13,32 @@ public class JsonRepository<T> : IRepository<T>
 
     public async Task<List<T>> LoadAsync()
     {
+        if (!File.Exists(_filePath))
+            return new List<T>();
+
         try
         {
-            if (!File.Exists(_filePath))
-                return new List<T>();
-
             await using var stream = File.OpenRead(_filePath);
-
             return await JsonSerializer.DeserializeAsync<List<T>>(stream)
                    ?? new List<T>();
         }
         catch (UnauthorizedAccessException ex)
         {
             throw new IOException(
-                $"Access denied when reading file '{_filePath}'.", ex);
+                $"Access denied when reading file '{_filePath}'. " +
+                $"Check file permissions.", ex);
         }
         catch (JsonException ex)
         {
+            // Corrupted JSON — surface a clear, actionable message.
             throw new IOException(
-                $"Invalid JSON format in file '{_filePath}'.", ex);
+                $"The data file '{_filePath}' contains invalid JSON and cannot be read. " +
+                $"Delete or repair the file and try again. Details: {ex.Message}", ex);
         }
         catch (IOException ex)
         {
             throw new IOException(
-                $"I/O error occurred while reading file '{_filePath}'.", ex);
+                $"I/O error occurred while reading file '{_filePath}': {ex.Message}", ex);
         }
     }
 
@@ -45,7 +47,6 @@ public class JsonRepository<T> : IRepository<T>
         try
         {
             await using var stream = File.Create(_filePath);
-
             await JsonSerializer.SerializeAsync(
                 stream,
                 items,
@@ -55,12 +56,13 @@ public class JsonRepository<T> : IRepository<T>
         catch (UnauthorizedAccessException ex)
         {
             throw new IOException(
-                $"Access denied when writing file '{_filePath}'.", ex);
+                $"Access denied when writing file '{_filePath}'. " +
+                $"Check file permissions.", ex);
         }
         catch (IOException ex)
         {
             throw new IOException(
-                $"I/O error occurred while writing file '{_filePath}'.", ex);
+                $"I/O error occurred while writing file '{_filePath}': {ex.Message}", ex);
         }
     }
 }

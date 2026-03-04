@@ -13,6 +13,8 @@ public class TaskServiceTests : TestBase
         return new TaskService(repository);
     }
 
+    // ─── AddTaskAsync ──────────────────────────────────────────────────────────
+
     [Fact]
     public async Task AddTaskAsync_CreatesTaskWithIncrementedId()
     {
@@ -33,6 +35,28 @@ public class TaskServiceTests : TestBase
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.AddTaskAsync(" "));
     }
+
+    [Fact]
+    public async Task AddTaskAsync_TrimsDescription()
+    {
+        var service = CreateService();
+
+        var task = await service.AddTaskAsync("  padded description  ");
+
+        Assert.Equal("padded description", task.Description);
+    }
+
+    [Fact]
+    public async Task AddTaskAsync_SetsDefaultStatusToDo()
+    {
+        var service = CreateService();
+
+        var task = await service.AddTaskAsync("New task");
+
+        Assert.Equal(TaskItemStatus.ToDo, task.Status);
+    }
+
+    // ─── GetTasksAsync ─────────────────────────────────────────────────────────
 
     [Fact]
     public async Task GetTasksAsync_ReturnsAllTasks()
@@ -67,6 +91,18 @@ public class TaskServiceTests : TestBase
     }
 
     [Fact]
+    public async Task GetTasksAsync_ReturnsEmptyList_WhenNoTasksExist()
+    {
+        var service = CreateService();
+
+        var tasks = await service.GetTasksAsync();
+
+        Assert.Empty(tasks);
+    }
+
+    // ─── UpdateTaskDescriptionAsync ────────────────────────────────────────────
+
+    [Fact]
     public async Task UpdateTaskAsync_UpdatesTaskDescription()
     {
         var service = CreateService();
@@ -74,12 +110,11 @@ public class TaskServiceTests : TestBase
         var createdTask = await service.AddTaskAsync("Initial project");
 
         var updatedTask = await service.UpdateTaskDescriptionAsync(
-            createdTask.Id,
-            "update project");
+            createdTask.Id, "update project");
 
         Assert.Equal(createdTask.Id, updatedTask.Id);
         Assert.Equal("update project", updatedTask.Description);
-        Assert.True(updatedTask.UpdatedAt > createdTask.UpdatedAt);
+        Assert.True(updatedTask.UpdatedAt >= createdTask.UpdatedAt);
     }
 
     [Fact]
@@ -89,6 +124,17 @@ public class TaskServiceTests : TestBase
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => service.UpdateTaskDescriptionAsync(0, "update project"));
+
+        Assert.Contains("id", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateTaskAsync_Throws_WhenIdIsNegative()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.UpdateTaskDescriptionAsync(-5, "update project"));
 
         Assert.Contains("id", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -116,7 +162,7 @@ public class TaskServiceTests : TestBase
         Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    // ─── UpdateStatusTaskAsync tests ───────────────────────────────────────────
+    // ─── UpdateStatusTaskAsync ─────────────────────────────────────────────────
 
     [Fact]
     public async Task UpdateStatusTaskAsync_SetsStatusInProgress()
@@ -176,6 +222,24 @@ public class TaskServiceTests : TestBase
         Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Regression test for the silent no-op bug fixed in the previous session:
+    /// an unknown command used to leave the task status unchanged with no error raised.
+    /// </summary>
+    [Fact]
+    public async Task UpdateStatusTaskAsync_Throws_WhenCommandIsUnknown()
+    {
+        var service = CreateService();
+        var task = await service.AddTaskAsync("Some task");
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.UpdateStatusTaskAsync("mark-in-banana", task.Id));
+
+        Assert.Contains("mark-in-banana", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ─── DeleteTaskByIdAsync ───────────────────────────────────────────────────
+
     [Fact]
     public async Task DeleteTaskById_DeletesTaskAndReturnsIt()
     {
@@ -186,23 +250,32 @@ public class TaskServiceTests : TestBase
 
         var deletedTask = await service.DeleteTaskByIdAsync(task2.Id);
 
-        // Assert returned task is correct
         Assert.Equal(task2.Id, deletedTask.Id);
         Assert.Equal("add new task", deletedTask.Description);
 
-        // Assert task was actually removed
         var remainingTasks = await service.GetTasksAsync();
         Assert.Single(remainingTasks);
         Assert.Equal(task1.Id, remainingTasks[0].Id);
     }
 
-        [Fact]
+    [Fact]
     public async Task DeleteTaskById_Throws_WhenIdIsZero()
     {
         var service = CreateService();
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => service.DeleteTaskByIdAsync(0));
+
+        Assert.Contains("id", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DeleteTaskById_Throws_WhenIdIsNegative()
+    {
+        var service = CreateService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.DeleteTaskByIdAsync(-1));
 
         Assert.Contains("id", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

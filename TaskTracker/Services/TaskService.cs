@@ -1,12 +1,5 @@
 using TaskTracker.Repositories;
 using TaskTracker.Models;
-using System.Security.Cryptography.X509Certificates;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Data;
-using System.Diagnostics.Tracing;
-using System.Threading.Tasks.Sources;
-using System.ComponentModel.Design;
 
 namespace TaskTracker.Services;
 
@@ -58,7 +51,6 @@ public class TaskService
             throw new ArgumentException("Task description cannot be empty.");
 
         var tasks = await _repository.LoadAsync();
-
         var task = tasks.FirstOrDefault(t => t.Id == id);
 
         if (task is null)
@@ -81,17 +73,20 @@ public class TaskService
             throw new ArgumentException("Command CLI cannot be empty.");
 
         var tasks = await _repository.LoadAsync();
-
         var task = tasks.FirstOrDefault(t => t.Id == id);
 
         if (task is null)
             throw new InvalidOperationException($"Task with id {id} not found.");
 
-        if (commandCli == "mark-in-progress")
-            task.Status = TaskItemStatus.InProgress;
-
-        if (commandCli == "mark-in-done")
-            task.Status = TaskItemStatus.Done;
+        // Guard against unknown status commands — prevents silent no-ops.
+        task.Status = commandCli switch
+        {
+            "mark-in-progress" => TaskItemStatus.InProgress,
+            "mark-in-done"     => TaskItemStatus.Done,
+            _                  => throw new ArgumentException(
+                                      $"Unknown status command '{commandCli}'. " +
+                                      $"Use: mark-in-progress | mark-in-done")
+        };
 
         task.UpdatedAt = DateTime.UtcNow;
 
@@ -106,17 +101,14 @@ public class TaskService
             throw new ArgumentException("Task id must be greater than zero.");
 
         var tasks = await _repository.LoadAsync();
-
         var task = tasks.FirstOrDefault(t => t.Id == id);
 
         if (task is null)
             throw new InvalidOperationException($"Task with id {id} not found.");
 
         tasks.Remove(task);
-
         await _repository.SaveAsync(tasks);
 
         return task;
-        
     }
 }

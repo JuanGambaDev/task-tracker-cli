@@ -22,6 +22,8 @@ A command-line application to manage your personal task list. Add tasks, track t
 
 Task Tracker CLI is a .NET 8 console application built as a focused exercise in clean CLI design, layered architecture, file system interaction, input validation, and unit testing.
 
+This project is based on the [Task Tracker project idea](https://roadmap.sh/projects/task-tracker) from [roadmap.sh](https://roadmap.sh) — a community-driven platform with structured learning paths and project challenges for developers.
+
 **Capabilities:**
 
 - Add tasks with a description
@@ -356,4 +358,26 @@ Every test class extends `TestBase`, which generates a unique temp file path per
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+```
+MIT License
+
+Copyright (c) 2024 JuanGambaDev
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

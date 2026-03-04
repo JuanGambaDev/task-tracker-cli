@@ -1,10 +1,19 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TaskTracker.Repositories;
 
 public class JsonRepository<T> : IRepository<T>
 {
     private readonly string _filePath;
+
+    // Shared options: indent for readability + serialize enums as strings ("ToDo", "InProgress", "Done")
+    // instead of integers (0, 1, 2), making the JSON file human-readable and easier to repair manually.
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public JsonRepository(string filePath)
     {
@@ -19,7 +28,7 @@ public class JsonRepository<T> : IRepository<T>
         try
         {
             await using var stream = File.OpenRead(_filePath);
-            return await JsonSerializer.DeserializeAsync<List<T>>(stream)
+            return await JsonSerializer.DeserializeAsync<List<T>>(stream, SerializerOptions)
                    ?? new List<T>();
         }
         catch (UnauthorizedAccessException ex)
@@ -30,7 +39,6 @@ public class JsonRepository<T> : IRepository<T>
         }
         catch (JsonException ex)
         {
-            // Corrupted JSON — surface a clear, actionable message.
             throw new IOException(
                 $"The data file '{_filePath}' contains invalid JSON and cannot be read. " +
                 $"Delete or repair the file and try again. Details: {ex.Message}", ex);
@@ -47,11 +55,7 @@ public class JsonRepository<T> : IRepository<T>
         try
         {
             await using var stream = File.Create(_filePath);
-            await JsonSerializer.SerializeAsync(
-                stream,
-                items,
-                new JsonSerializerOptions { WriteIndented = true }
-            );
+            await JsonSerializer.SerializeAsync(stream, items, SerializerOptions);
         }
         catch (UnauthorizedAccessException ex)
         {

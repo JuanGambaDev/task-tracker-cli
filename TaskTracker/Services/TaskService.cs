@@ -64,13 +64,15 @@ public class TaskService
         return task;
     }
 
-    public async Task<TaskItem> UpdateStatusTaskAsync(string commandCli, int id)
+    // Accepts a TaskItemStatus value directly — the service layer has no knowledge
+    // of CLI command strings. Translation happens in Program.cs where it belongs.
+    public async Task<TaskItem> UpdateStatusAsync(int id, TaskItemStatus newStatus)
     {
         if (id <= 0)
             throw new ArgumentException("Task id must be greater than zero.");
 
-        if (string.IsNullOrWhiteSpace(commandCli))
-            throw new ArgumentException("Command CLI cannot be empty.");
+        if (!Enum.IsDefined(newStatus))
+            throw new ArgumentException($"Invalid status value '{newStatus}'.");
 
         var tasks = await _repository.LoadAsync();
         var task = tasks.FirstOrDefault(t => t.Id == id);
@@ -78,16 +80,7 @@ public class TaskService
         if (task is null)
             throw new InvalidOperationException($"Task with id {id} not found.");
 
-        // Guard against unknown status commands — prevents silent no-ops.
-        task.Status = commandCli switch
-        {
-            "mark-in-progress" => TaskItemStatus.InProgress,
-            "mark-in-done"     => TaskItemStatus.Done,
-            _                  => throw new ArgumentException(
-                                      $"Unknown status command '{commandCli}'. " +
-                                      $"Use: mark-in-progress | mark-in-done")
-        };
-
+        task.Status = newStatus;
         task.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveAsync(tasks);

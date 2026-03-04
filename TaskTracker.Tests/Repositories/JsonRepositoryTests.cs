@@ -1,3 +1,5 @@
+using System.Text.Json;
+using TaskTracker.Models;
 using TaskTracker.Repositories;
 using Xunit;
 
@@ -21,28 +23,22 @@ public class JsonRepositoryTests : TestBase
     [Fact]
     public async Task LoadAsync_ReturnsEmptyList_WhenFileIsEmpty()
     {
-        // An empty file is not valid JSON — repo should surface IOException.
-        // Some implementations tolerate it; ensure it never returns null.
         await File.WriteAllTextAsync(TempFilePath, string.Empty);
 
         var repo = new JsonRepository<string>(TempFilePath);
 
-        // Empty file produces a JsonException internally → wrapped as IOException.
         await Assert.ThrowsAsync<IOException>(() => repo.LoadAsync());
     }
 
     [Fact]
     public async Task LoadAsync_ThrowsIOException_WhenFileContainsCorruptedJson()
     {
-        // Acceptance criterion: corrupted JSON must never crash the app —
-        // the repository wraps JsonException in a clear IOException.
         await File.WriteAllTextAsync(TempFilePath, "{ this is not valid json !!!");
 
         var repo = new JsonRepository<string>(TempFilePath);
 
         var ex = await Assert.ThrowsAsync<IOException>(() => repo.LoadAsync());
 
-        // Message must be actionable, not a raw serialiser dump.
         Assert.Contains("invalid JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(TempFilePath, ex.Message);
     }
@@ -50,12 +46,10 @@ public class JsonRepositoryTests : TestBase
     [Fact]
     public async Task LoadAsync_ThrowsIOException_WhenFileContainsWrongJsonType()
     {
-        // Valid JSON but wrong shape (object instead of array).
         await File.WriteAllTextAsync(TempFilePath, "{ \"key\": 42 }");
 
         var repo = new JsonRepository<string>(TempFilePath);
 
-        // Deserialising an object into List<string> throws JsonException → IOException.
         await Assert.ThrowsAsync<IOException>(() => repo.LoadAsync());
     }
 
@@ -99,18 +93,49 @@ public class JsonRepositoryTests : TestBase
         Assert.Empty(loaded);
     }
 
-    [Fact]
-    public async Task SaveAsync_WritesValidJsonToFile()
-    {
-        var repo = new JsonRepository<int>(TempFilePath);
+    // ─── Enum serialisation ────────────────────────────────────────────────────
 
-        await repo.SaveAsync(new List<int> { 7, 8, 9 });
+    [Fact]
+    public async Task SaveAsync_SerializesTaskItemStatusAsString()
+    {
+        var repo = new JsonRepository<TaskItem>(TempFilePath);
+
+        var task = new TaskItem
+        {
+            Id = 1,
+            Description = "Test task",
+            Status = TaskItemStatus.InProgress,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await repo.SaveAsync(new List<TaskItem> { task });
 
         var raw = await File.ReadAllTextAsync(TempFilePath);
 
-        // File must contain recognisable JSON — not binary or empty.
-        Assert.Contains("7", raw);
-        Assert.Contains("8", raw);
-        Assert.Contains("9", raw);
+        // Status must appear as a human-readable string, not a raw integer.
+        Assert.Contains("InProgress", raw);
+        Assert.DoesNotContain("\"Status\": 1", raw);
+    }
+
+    [Fact]
+    public async Task SaveAndLoadAsync_RoundTrips_EnumValuesCorrectly()
+    {
+        var repo = new JsonRepository<TaskItem>(TempFilePath);
+
+        var task = new TaskItem
+        {
+            Id = 1,
+            Description = "Test task",
+            Status = TaskItemStatus.Done,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await repo.SaveAsync(new List<TaskItem> { task });
+        var loaded = await repo.LoadAsync();
+
+        Assert.Single(loaded);
+        Assert.Equal(TaskItemStatus.Done, loaded[0].Status);
     }
 }

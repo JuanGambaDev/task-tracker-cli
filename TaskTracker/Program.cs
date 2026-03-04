@@ -28,7 +28,7 @@ try
             TaskItemStatus? status = null;
 
             if (args.Length > 1)
-                status = ParseStatus(args[1]);   // ArgumentException handled in outer catch
+                status = ParseStatus(args[1]);
 
             var tasks = await service.GetTasksAsync(status);
 
@@ -45,7 +45,6 @@ try
                 Console.WriteLine($"Description: {task.Description}");
                 Console.WriteLine($"Status:      {task.Status}");
                 Console.WriteLine($"Created At:  {task.CreatedAt:u}");
-                Console.WriteLine($"Last Update: {task.UpdatedAt:u}");
                 Console.WriteLine("----------------");
             }
             break;
@@ -70,28 +69,30 @@ try
         {
             EnsureArgs(args, minArgs: 2, usage: "mark-in-progress <id>");
 
-            if (!int.TryParse(args[1], out int idProgress))
+            if (!int.TryParse(args[1], out int id))
             {
                 Console.Error.WriteLine($"Error: Task id must be a valid integer, got '{args[1]}'.");
                 return;
             }
 
-            var updatedTask = await service.UpdateStatusTaskAsync(args[0], idProgress);
+            // CLI translates the command to a domain value — service stays clean.
+            var updatedTask = await service.UpdateStatusAsync(id, TaskItemStatus.InProgress);
             Console.WriteLine($"Task marked as In Progress (ID: {updatedTask.Id})");
             break;
         }
 
-        case "mark-in-done":
+        case "mark-done":
         {
-            EnsureArgs(args, minArgs: 2, usage: "mark-in-done <id>");
+            EnsureArgs(args, minArgs: 2, usage: "mark-done <id>");
 
-            if (!int.TryParse(args[1], out int idDone))
+            if (!int.TryParse(args[1], out int id))
             {
                 Console.Error.WriteLine($"Error: Task id must be a valid integer, got '{args[1]}'.");
                 return;
             }
 
-            var updatedTask = await service.UpdateStatusTaskAsync(args[0], idDone);
+            // CLI translates the command to a domain value — service stays clean.
+            var updatedTask = await service.UpdateStatusAsync(id, TaskItemStatus.Done);
             Console.WriteLine($"Task marked as Done (ID: {updatedTask.Id})");
             break;
         }
@@ -119,22 +120,18 @@ try
 }
 catch (ArgumentException ex)
 {
-    // Covers: missing args, bad status filter, empty description, non-positive id.
     Console.Error.WriteLine($"Error: {ex.Message}");
 }
 catch (InvalidOperationException ex)
 {
-    // Covers: task not found.
     Console.Error.WriteLine($"Error: {ex.Message}");
 }
 catch (IOException ex)
 {
-    // Covers: corrupted JSON, permission denied, generic I/O failures.
     Console.Error.WriteLine($"Storage error: {ex.Message}");
 }
 catch (Exception ex)
 {
-    // Last-resort guard — app must never surface a raw stack trace to the user.
     Console.Error.WriteLine($"Unexpected error: {ex.Message}");
 }
 
@@ -145,8 +142,7 @@ catch (Exception ex)
 static void EnsureArgs(string[] args, int minArgs, string usage)
 {
     if (args.Length < minArgs)
-        throw new ArgumentException(
-            $"Not enough arguments. Usage: {usage}");
+        throw new ArgumentException($"Not enough arguments. Usage: {usage}");
 }
 
 static TaskItemStatus ParseStatus(string input)
@@ -174,7 +170,7 @@ Commands:
   list done                       List tasks with status: done
   update <id> "new description"   Update a task's description
   mark-in-progress <id>           Mark a task as in-progress
-  mark-in-done <id>               Mark a task as done
+  mark-done <id>                  Mark a task as done
   delete <id>                     Delete a task
 """);
 }
